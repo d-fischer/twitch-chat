@@ -27,6 +27,7 @@ import ChatCommunitySubInfo from './ChatCommunitySubInfo';
  */
 export interface ChatClientOptions {
 	logLevel?: LogLevel;
+	isPlainPassword?: boolean;
 }
 
 /**
@@ -329,6 +330,27 @@ export default class ChatClient extends IRCClient {
 	}
 
 	/**
+	 * Connects to Twitch chat using an anonymous, read-only justinfan connection.
+	 * Randomly generates the justinfan number if none is provided as second param.
+	 *
+	 * @param twitchClient The TwitchClient instance to user for user info and API requests.
+	 * @param id The number to use as suffix of the justinfan account. Only the first five whole digits are used.
+	 * @param options Options for the chat client.
+	 */
+	static async anonymous(twitchClient: TwitchClient, id?: number, options: ChatClientOptions = {}) {
+		if (!id) {
+			id = Math.floor(Math.random() * 100000);
+		}
+		// Convert the number to a five digit string.
+		const stringifiedId = Math.floor(id).toString().padStart(5, '0').substr(0, 5);
+		const user = `justinfan${stringifiedId}`;
+
+		options.isPlainPassword = true;
+
+		return new this(user, user, twitchClient, options);
+	}
+
+	/**
 	 * Creates a new Twitch chat client.
 	 *
 	 * @param username The user name to use to connect to Twitch chat.
@@ -343,7 +365,7 @@ export default class ChatClient extends IRCClient {
 			connection: {
 				hostName: 'irc-ws.chat.twitch.tv',
 				nick: username.toLowerCase(),
-				password: `oauth:${token}`,
+				password: options.isPlainPassword ? token : `oauth:${token}`,
 				secure: true
 			},
 			webSocket: true,
